@@ -1,0 +1,100 @@
+.chartContainer {
+  padding: 1.4rem;
+  margin-bottom: 1.5rem;
+  border-radius: 28px;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.06), transparent 20%),
+    linear-gradient(180deg, rgba(15, 28, 46, 0.84), rgba(8, 16, 31, 0.98));
+  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow);
+  transition: border-color 0.25s ease, transform 0.25s ease;
+}
+
+.chartContainer:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-2px);
+}
+
+.chartHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.2rem;
+}
+
+.chartTitle {
+  margin: 0;
+  font-family: "Rajdhani", sans-serif;
+  color: var(--text);
+  font-size: 1.5rem;
+}
+
+.viewToggle {
+  border: 1px solid rgba(101, 242, 215, 0.24);
+  background: rgba(101, 242, 215, 0.08);
+  color: var(--accent);
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.emptyState {
+  color: var(--muted);
+  text-align: center;
+  padding: 3.5rem 1rem;
+}
+
+.chartStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.2rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.statItem {
+  padding: 0.95rem 1rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.label {
+  color: var(--soft);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.value {
+  color: var(--accent);
+  font-family: "Rajdhani", sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+@media (max-width: 768px) {
+  .chartContainer {
+    padding: 1rem;
+  }
+
+  .chartHeader,
+  .chartStats {
+    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+
+  .chartHeader {
+    align-items: flex-start;
+  }
+}

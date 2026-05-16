@@ -1,0 +1,97 @@
+.predictionCard {
+  padding: 1.4rem;
+  border-radius: 28px;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.06), transparent 22%),
+    linear-gradient(180deg, rgba(15, 28, 46, 0.84), rgba(8, 16, 31, 0.98));
+  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow);
+}
+
+.title {
+  margin: 0 0 1.15rem;
+  font-family: "Rajdhani", sans-serif;
+  font-size: 1.5rem;
+}
+
+.emptyState {
+  color: var(--muted);
+  text-align: center;
+  padding: 2.5rem 1rem;
+}
+
+.riskIndicator {
+  border: 1px solid;
+  border-radius: 22px;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1.2rem;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.riskLevel {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 0.35rem;
+}
+
+.riskMessage {
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.metricBox {
+  padding: 1rem;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.metricLabel {
+  color: var(--soft);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 0.5rem;
+}
+
+.metricValue {
+  color: var(--accent);
+  font-family: "Rajdhani", sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.3rem;
+}
+
+.metricSubtext,
+.metricCapacity {
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.disclaimer {
+  padding: 0.85rem 1rem;
+  border-radius: 18px;
+  background: rgba(47, 216, 255, 0.08);
+  border: 1px solid rgba(47, 216, 255, 0.14);
+  color: #b3e7ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-align: center;
+}
