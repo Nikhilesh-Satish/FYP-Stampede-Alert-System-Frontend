@@ -54,20 +54,20 @@ export const useCameraMonitor = (
     addCameraDataPoint,
   } = useChartData();
 
-  const fetchCounts = useCallback(async () => {
-    if (!cameras || cameras.length === 0) return;
+  const fetchCounts = useCallback(async (targetCameras = cameras) => {
+    if (!targetCameras || targetCameras.length === 0) return;
 
     try {
       let countData = [];
 
       // Try bulk endpoint first, fall back to individual calls
       try {
-        countData = await cameraApi.getAllCameraCounts(cameras);
+        countData = await cameraApi.getAllCameraCounts(targetCameras);
         console.log("✅ Fetched all camera counts:", countData);
       } catch (err) {
         console.log("Bulk fetch failed, trying individual:", err);
         const results = await Promise.all(
-          cameras.map((cam) =>
+          targetCameras.map((cam) =>
             cameraApi
               .getCameraCount(cam)
               .then((data) => {
@@ -275,8 +275,8 @@ export const useCameraMonitor = (
   }, []);
 
   // Manual refresh: fetch immediately and restart interval
-  const forceRefresh = useCallback(async () => {
-    await fetchCounts();
+  const forceRefresh = useCallback(async (targetCameras) => {
+    await fetchCounts(targetCameras);
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { cameraApi, getCameraKey } from "../api/services";
 import { useCameraMonitor } from "../utils/useCameraMonitor";
@@ -53,6 +53,7 @@ const DashboardPage = () => {
   const [cameraBackendQueue, setCameraBackendQueue] = useState(() =>
     buildCameraBackendQueue([]),
   );
+  const camerasRef = useRef([]);
 
   const {
     counts,
@@ -65,6 +66,10 @@ const DashboardPage = () => {
     densitySummary,
     globalDensityHistory,
   } = useCameraMonitor(cameras, capacity, isPaused);
+
+  useEffect(() => {
+    camerasRef.current = cameras;
+  }, [cameras]);
 
   useEffect(() => {
     cameraApi
@@ -84,14 +89,21 @@ const DashboardPage = () => {
 
   const handleCameraAdded = (cam) => {
     console.log("Camera added, waiting for worker to initialize...");
-    setCameras((prev) => [...prev, cam]);
+    const existingKey = getCameraKey(cam);
+    const currentCameras = camerasRef.current;
+    const nextCameras = currentCameras.some((camera) => getCameraKey(camera) === existingKey)
+      ? currentCameras
+      : [...currentCameras, cam];
+    camerasRef.current = nextCameras;
+    setCameras(nextCameras);
     setCameraBackendQueue((prev) => reserveCameraBackend(prev, getCameraBackendUrl(cam)));
+    forceRefresh([cam]);
     // Wait before first poll: worker thread needs time to start processing stream
-    window.setTimeout(forceRefresh, 5000);
+    window.setTimeout(() => forceRefresh(camerasRef.current), 5000);
     // Keep polling aggressively for first 30 seconds
-    window.setTimeout(forceRefresh, 10000);
-    window.setTimeout(forceRefresh, 15000);
-    window.setTimeout(forceRefresh, 25000);
+    window.setTimeout(() => forceRefresh(camerasRef.current), 10000);
+    window.setTimeout(() => forceRefresh(camerasRef.current), 15000);
+    window.setTimeout(() => forceRefresh(camerasRef.current), 25000);
   };
 
   const handleDelete = async (camera) => {

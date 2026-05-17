@@ -73,12 +73,8 @@ const AddCameraModal = ({ backendUrls = [], onClose, onSuccess }) => {
       const result = await cameraApi.addCamera({ ...form, backendUrls });
       console.log("Add camera response:", result);
       setLoadingHint("✅ Camera added! Initializing worker... Please wait.");
-      // Keep modal open briefly to show success
-      await new Promise((resolve) => window.setTimeout(resolve, 2000));
+      onSuccess(result);
       onClose();
-      setTimeout(() => {
-        onSuccess(result);
-      }, 0);
     } catch (err) {
       console.error("Add camera error:", err);
       setError(err.message || "Failed to add camera.");
