@@ -1,14 +1,8 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { cameraApi, getCameraKey } from "../api/services";
+import { cameraApi } from "../api/services";
 import { useCameraMonitor } from "../utils/useCameraMonitor";
 import { DEFAULT_AREA_CAPACITY } from "../api/config";
-import {
-  buildCameraBackendQueue,
-  getCameraBackendUrl,
-  releaseCameraBackend,
-  reserveCameraBackend,
-} from "../api/backendQueue";
 import Navbar from "../components/Navbar";
 import CameraCard from "../components/CameraCard";
 import AddCameraModal from "../components/AddCameraModal";
@@ -49,10 +43,7 @@ const DashboardPage = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [capacity, setCapacity] = useState(DEFAULT_AREA_CAPACITY);
   const [resetLoading, setResetLoading] = useState(false);
-  const [isPaused, setIsPaused] = useState(false); // Default: playing (not paused)
-  const [cameraBackendQueue, setCameraBackendQueue] = useState(() =>
-    buildCameraBackendQueue([]),
-  );
+  const [isPaused, setIsPaused] = useState(true);
 
   const {
     counts,
@@ -70,43 +61,25 @@ const DashboardPage = () => {
     cameraApi
       .getCameras()
       .then((data) => {
-        const loadedCameras = Array.isArray(data) ? data : data.cameras || [];
-        setCameras(loadedCameras);
-        setCameraBackendQueue(buildCameraBackendQueue(loadedCameras));
+        setCameras(Array.isArray(data) ? data : data.cameras || []);
       })
       .catch((err) => {
         console.error("Failed to load cameras:", err);
         setFetchError("Could not load cameras. Is your backend running?");
-        setCameraBackendQueue(buildCameraBackendQueue([]));
       })
       .finally(() => setLoadingCams(false));
   }, []);
 
   const handleCameraAdded = (cam) => {
-    console.log("Camera added, waiting for worker to initialize...");
     setCameras((prev) => [...prev, cam]);
-    setCameraBackendQueue((prev) => reserveCameraBackend(prev, getCameraBackendUrl(cam)));
-    // Poll once to validate camera is started
-    forceRefresh();
-    // Reload page after 30s to display new camera stream (ONLY on camera add)
-    window.setTimeout(() => {
-      console.log("Reloading page to display new camera stream...");
-      window.location.reload();
-    }, 30000);
+    setTimeout(forceRefresh, 500);
   };
 
-  const handleDelete = async (camera) => {
+  const handleDelete = async (id) => {
     if (!window.confirm("Remove this camera from monitoring?")) return;
     try {
-      await cameraApi.deleteCamera(camera);
-      const removedKey = getCameraKey(camera);
-      setCameras((prev) => {
-        const remainingCameras = prev.filter((c) => getCameraKey(c) !== removedKey);
-        setCameraBackendQueue((queue) =>
-          releaseCameraBackend(queue, getCameraBackendUrl(camera), remainingCameras),
-        );
-        return remainingCameras;
-      });
+      await cameraApi.deleteCamera(id);
+      setCameras((prev) => prev.filter((c) => c.id !== id));
     } catch (err) {
       alert("Delete failed: " + err.message);
     }
@@ -131,6 +104,23 @@ const DashboardPage = () => {
   const occupancyPercent = globalAlert?.occupancyPercent ?? 0;
   const alertLevel = globalAlert?.alertLevel;
   const densityAlertLevel = densitySummary?.alertLevel;
+
+  // Determine stampede risk by taking the maximum severity between occupancy and density alerts
+  const getMaxAlertLevel = () => {
+    const levelOrder = { SAFE: 0, WARNING: 1, DANGER: 2, CRITICAL: 3 };
+    const occupancyScore = alertLevel ? levelOrder[alertLevel.level] : 0;
+    const densityScore = densityAlertLevel
+      ? levelOrder[densityAlertLevel.level]
+      : 0;
+
+    if (occupancyScore > densityScore) {
+      return alertLevel;
+    }
+    return densityAlertLevel;
+  };
+
+  const stampedRiskLevel = getMaxAlertLevel();
+
   const heroGlow = usePointerGlow();
   const addMagnetic = useMagneticHover();
 
@@ -155,7 +145,8 @@ const DashboardPage = () => {
               <p className={styles.kicker}>Operations console</p>
               <h1 className={styles.pageTitle}>Admin Control Panel</h1>
               <p className={styles.pageSubtitle}>
-                Welcome back, <span className={styles.hi}>{user?.firstName || "Admin"}</span>
+                Welcome back,{" "}
+                <span className={styles.hi}>{user?.firstName || "Admin"}</span>
                 {lastUpdated && (
                   <span className={styles.ts}>
                     Updated{" "}
@@ -187,7 +178,10 @@ const DashboardPage = () => {
                       }
                     }}
                     onBlur={(e) => {
-                      if (e.target.value === "" || parseInt(e.target.value, 10) < 1) {
+                      if (
+                        e.target.value === "" ||
+                        parseInt(e.target.value, 10) < 1
+                      ) {
                         setCapacity(DEFAULT_AREA_CAPACITY);
                       }
                     }}
@@ -209,14 +203,24 @@ const DashboardPage = () => {
               >
                 {isPaused ? (
                   <>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
                       <polygon points="5 3 19 12 5 21 5 3" />
                     </svg>
                     Play
                   </>
                 ) : (
                   <>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
                       <rect x="6" y="4" width="4" height="16" />
                       <rect x="14" y="4" width="4" height="16" />
                     </svg>
@@ -225,8 +229,19 @@ const DashboardPage = () => {
                 )}
               </button>
 
-              <button className={styles.refreshBtn} onClick={forceRefresh} title="Refresh now">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <button
+                className={styles.refreshBtn}
+                onClick={forceRefresh}
+                title="Refresh now"
+              >
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
                   <polyline points="23 4 23 10 17 10" />
                   <polyline points="1 20 1 14 7 14" />
                   <path d="M3.5 9a9 9 0 0 1 14.8-3.3L23 10M1 14l4.7 4.3A9 9 0 0 0 20.5 15" />
@@ -239,7 +254,14 @@ const DashboardPage = () => {
                 className={`${styles.addBtn} magneticButton`}
                 onClick={() => setShowAddModal(true)}
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
                   <line x1="12" y1="5" x2="12" y2="19" />
                   <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
@@ -275,7 +297,14 @@ const DashboardPage = () => {
               value={`${totalPeople}/${capacity}`}
               color={alertLevel?.color || "#65f2d7"}
               icon={
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                >
                   <circle cx="9" cy="7" r="3" />
                   <path d="M3 21v-2a6 6 0 0 1 6-6" />
                   <circle cx="17" cy="7" r="3" />
@@ -307,7 +336,14 @@ const DashboardPage = () => {
               value={`${occupancyPercent}%`}
               color={alertLevel?.color || "#65f2d7"}
               icon={
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                >
                   <rect x="3" y="3" width="18" height="18" rx="2" />
                   <line x1="9" y1="9" x2="15" y2="9" />
                   <line x1="9" y1="15" x2="15" y2="15" />
@@ -322,7 +358,14 @@ const DashboardPage = () => {
               value={cameras.length}
               color="#7dd3fc"
               icon={
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                >
                   <path d="M23 7l-7 5 7 5V7z" />
                   <rect x="1" y="5" width="15" height="14" rx="2" />
                 </svg>
@@ -333,10 +376,17 @@ const DashboardPage = () => {
           <Reveal delay={210}>
             <StatCard
               label="Stampede Risk"
-              value={densityAlertLevel?.label || "Safe"}
-              color={densityAlertLevel?.color || "#4ade80"}
+              value={stampedRiskLevel?.label || "Safe"}
+              color={stampedRiskLevel?.color || "#4ade80"}
               icon={
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                >
                   <path d="M10.3 21h3.4M12 3a7 7 0 0 1 7 7c0 2.5 1 4 1 6H4c0-2 1-3.5 1-6a7 7 0 0 1 7-7z" />
                 </svg>
               }
@@ -362,7 +412,14 @@ const DashboardPage = () => {
           </div>
         ) : cameras.length === 0 ? (
           <div className={styles.emptyState}>
-            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#334155" strokeWidth="1">
+            <svg
+              width="56"
+              height="56"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#334155"
+              strokeWidth="1"
+            >
               <path d="M23 7l-7 5 7 5V7z" />
               <rect x="1" y="5" width="15" height="14" rx="2" />
             </svg>
@@ -370,17 +427,20 @@ const DashboardPage = () => {
             <p className={styles.emptyText}>
               Add a feed to begin crowd monitoring and alert analysis.
             </p>
-            <button className={styles.addBtn} onClick={() => setShowAddModal(true)}>
+            <button
+              className={styles.addBtn}
+              onClick={() => setShowAddModal(true)}
+            >
               Add First Camera
             </button>
           </div>
         ) : (
           <div className={styles.grid}>
             {cameras.map((cam) => (
-              <Reveal key={getCameraKey(cam)} delay={0}>
+              <Reveal key={cam.id} delay={0}>
                 <CameraCard
                   camera={cam}
-                  countData={counts[getCameraKey(cam)]}
+                  countData={counts[cam.id]}
                   onDelete={handleDelete}
                   isPaused={isPaused}
                 />
@@ -405,14 +465,14 @@ const DashboardPage = () => {
               <div className={styles.chartGrid}>
                 {cameras.map(
                   (cam) =>
-                    cameraHistory[getCameraKey(cam)] &&
-                    cameraHistory[getCameraKey(cam)].length > 0 && (
-                      <Reveal key={`trend-wrap-${getCameraKey(cam)}`} delay={100}>
+                    cameraHistory[cam.id] &&
+                    cameraHistory[cam.id].length > 0 && (
+                      <Reveal key={`trend-wrap-${cam.id}`} delay={100}>
                         <CameraTrendChart
-                          key={`trend-${getCameraKey(cam)}`}
-                          cameraId={getCameraKey(cam)}
+                          key={`trend-${cam.id}`}
+                          cameraId={cam.id}
                           cameraName={cam.name}
-                          data={cameraHistory[getCameraKey(cam)]}
+                          data={cameraHistory[cam.id]}
                           capacity={capacity}
                         />
                       </Reveal>
@@ -426,7 +486,6 @@ const DashboardPage = () => {
 
       {showAddModal && (
         <AddCameraModal
-          backendUrls={cameraBackendQueue}
           onClose={() => setShowAddModal(false)}
           onSuccess={handleCameraAdded}
         />
