@@ -17,6 +17,7 @@ const CameraCard = ({ camera, countData, onDelete, isPaused = false }) => {
   const [isZoomOpen, setIsZoomOpen] = useState(false);
   const [streamError, setStreamError] = useState(false);
   const [zoomStreamError, setZoomStreamError] = useState(false);
+  const [streamRetryToken, setStreamRetryToken] = useState(Date.now());
   const count = countData?.count ?? null;
   const inCount = countData?.inCount ?? 0;
   const outCount = countData?.outCount ?? 0;
@@ -31,6 +32,7 @@ const CameraCard = ({ camera, countData, onDelete, isPaused = false }) => {
   const streamUrl = cameraApi.getCameraStreamUrl(camera, {
     overlay: showOverlay,
   });
+  const streamSrc = `${streamUrl}&retry=${streamRetryToken}`;
   const directionHint = (() => {
     const axis = camera?.count_axis || "x";
     const inDirection = camera?.in_direction || "positive";
@@ -103,6 +105,22 @@ const CameraCard = ({ camera, countData, onDelete, isPaused = false }) => {
       setStartStopLoading(false);
     }
   };
+
+  useEffect(() => {
+    setStreamError(false);
+    setZoomStreamError(false);
+    setStreamRetryToken(Date.now());
+  }, [streamUrl]);
+
+  useEffect(() => {
+    if (!streamError) return undefined;
+
+    const retryTimer = window.setInterval(() => {
+      setStreamRetryToken(Date.now());
+    }, 3000);
+
+    return () => window.clearInterval(retryTimer);
+  }, [streamError]);
 
   useEffect(() => {
     if (!isZoomOpen) return undefined;
@@ -222,7 +240,7 @@ const CameraCard = ({ camera, countData, onDelete, isPaused = false }) => {
             }}
           >
             <img
-              src={streamUrl}
+              src={streamSrc}
               alt={`${camera?.name || "Camera"} live stream`}
               onError={() => setStreamError(true)}
               onLoad={() => setStreamError(false)}
@@ -400,9 +418,10 @@ const CameraCard = ({ camera, countData, onDelete, isPaused = false }) => {
                   <div className={styles.modalError}>Unable to load the magnified stream.</div>
                 ) : (
                   <img
-                    src={streamUrl}
+                    src={streamSrc}
                     alt={`${camera?.name || "Camera"} magnified stream`}
                     onError={() => setZoomStreamError(true)}
+                    onLoad={() => setZoomStreamError(false)}
                   />
                 )}
               </div>

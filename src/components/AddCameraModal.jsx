@@ -7,7 +7,7 @@ const AddCameraModal = ({ backendUrls = [], onClose, onSuccess }) => {
     name: "",
     streamPath: "",
     shotType: "drone",
-    countAxis: "x",
+    countAxis: "y",
     inDirection: "positive",
     processingPreset: "balanced",
     countingEnabled: true,
@@ -21,6 +21,16 @@ const AddCameraModal = ({ backendUrls = [], onClose, onSuccess }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    setError("");
+  };
+
+  const handleShotTypeChange = (e) => {
+    const shotType = e.target.value;
+    setForm((prev) => ({
+      ...prev,
+      shotType,
+      countAxis: shotType === "drone" ? "y" : prev.countAxis,
+    }));
     setError("");
   };
 
@@ -62,6 +72,9 @@ const AddCameraModal = ({ backendUrls = [], onClose, onSuccess }) => {
       }, 8000);
       const result = await cameraApi.addCamera({ ...form, backendUrls });
       console.log("Add camera response:", result);
+      setLoadingHint("✅ Camera added! Initializing worker... Please wait.");
+      // Keep modal open briefly to show success
+      await new Promise((resolve) => window.setTimeout(resolve, 2000));
       onClose();
       setTimeout(() => {
         onSuccess(result);
@@ -139,7 +152,7 @@ const AddCameraModal = ({ backendUrls = [], onClose, onSuccess }) => {
               className={styles.input}
               name="shotType"
               value={form.shotType}
-              onChange={handleChange}
+              onChange={handleShotTypeChange}
             >
               <option value="drone">Drone / overhead camera</option>
               <option value="ground">Ground / normal camera</option>

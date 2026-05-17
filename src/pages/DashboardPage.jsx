@@ -83,9 +83,15 @@ const DashboardPage = () => {
   }, []);
 
   const handleCameraAdded = (cam) => {
+    console.log("Camera added, waiting for worker to initialize...");
     setCameras((prev) => [...prev, cam]);
     setCameraBackendQueue((prev) => reserveCameraBackend(prev, getCameraBackendUrl(cam)));
-    setTimeout(forceRefresh, 500);
+    // Wait before first poll: worker thread needs time to start processing stream
+    window.setTimeout(forceRefresh, 5000);
+    // Keep polling aggressively for first 30 seconds
+    window.setTimeout(forceRefresh, 10000);
+    window.setTimeout(forceRefresh, 15000);
+    window.setTimeout(forceRefresh, 25000);
   };
 
   const handleDelete = async (camera) => {

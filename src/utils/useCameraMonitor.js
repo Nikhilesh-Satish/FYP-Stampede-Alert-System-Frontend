@@ -76,7 +76,13 @@ export const useCameraMonitor = (
               })
               .catch((e) => {
                 console.log(`❌ Failed to get count for ${cam.id}:`, e);
-                return { camera_id: cam.id, count: null, timestamp: null };
+                return {
+                  camera_id: cam.id,
+                  count: null,
+                  timestamp: null,
+                  backendUrl: cam.backendUrl || cam.backend_url,
+                  backend_url: cam.backend_url || cam.backendUrl,
+                };
               }),
           ),
         );

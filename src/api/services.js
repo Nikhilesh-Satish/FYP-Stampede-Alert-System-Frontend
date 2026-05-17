@@ -34,6 +34,29 @@ const fetchWithTimeout = async (url, options = {}, timeoutMs = 120000) => {
   }
 };
 
+const getGoogleDriveFileId = (url) => {
+  const value = String(url || "").trim();
+  const patterns = [
+    /drive\.google\.com\/file\/d\/([^/]+)/,
+    /drive\.google\.com\/open\?id=([^&]+)/,
+    /drive\.google\.com\/uc\?(?:.*&)?id=([^&]+)/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = value.match(pattern);
+    if (match?.[1]) return decodeURIComponent(match[1]);
+  }
+
+  return "";
+};
+
+const normalizeStreamPath = (streamPath) => {
+  const trimmed = String(streamPath || "").trim();
+  const driveFileId = getGoogleDriveFileId(trimmed);
+  if (!driveFileId) return trimmed;
+  return `https://drive.google.com/uc?export=download&id=${encodeURIComponent(driveFileId)}`;
+};
+
 const withBackend = (item, backendUrl) => ({
   ...item,
   backendUrl,
@@ -171,7 +194,7 @@ export const cameraApi = {
     }
     const body = JSON.stringify({
         name,
-        stream_path: streamPath,
+        stream_path: normalizeStreamPath(streamPath),
         count_axis: countAxis || "x",
         in_direction: inDirection || "positive",
         shot_type: shotType || "ground",
@@ -188,11 +211,15 @@ export const cameraApi = {
           method: "POST",
           headers: getAuthHeaders(),
           body,
-        });
+        }, 45000);
         const data = await handleResponse(res);
         return withBackend(data, targetBackend);
       } catch (err) {
-        failures.push(`${targetBackend}: ${err.message}`);
+        const message =
+          err.name === "AbortError"
+            ? "timed out while starting backend"
+            : err.message;
+        failures.push(`${targetBackend}: ${message}`);
       }
     }
 
