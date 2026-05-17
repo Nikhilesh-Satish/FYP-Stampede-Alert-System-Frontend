@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { cameraApi, getCameraKey } from "../api/services";
 import { useCameraMonitor } from "../utils/useCameraMonitor";
@@ -49,11 +49,10 @@ const DashboardPage = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [capacity, setCapacity] = useState(DEFAULT_AREA_CAPACITY);
   const [resetLoading, setResetLoading] = useState(false);
-  const [isPaused, setIsPaused] = useState(true);
+  const [isPaused, setIsPaused] = useState(false); // Default: playing (not paused)
   const [cameraBackendQueue, setCameraBackendQueue] = useState(() =>
     buildCameraBackendQueue([]),
   );
-  const camerasRef = useRef([]);
 
   const {
     counts,
@@ -66,10 +65,6 @@ const DashboardPage = () => {
     densitySummary,
     globalDensityHistory,
   } = useCameraMonitor(cameras, capacity, isPaused);
-
-  useEffect(() => {
-    camerasRef.current = cameras;
-  }, [cameras]);
 
   useEffect(() => {
     cameraApi
@@ -89,31 +84,15 @@ const DashboardPage = () => {
 
   const handleCameraAdded = (cam) => {
     console.log("Camera added, waiting for worker to initialize...");
-    const existingKey = getCameraKey(cam);
-    const currentCameras = camerasRef.current;
-    const nextCameras = currentCameras.some((camera) => getCameraKey(camera) === existingKey)
-      ? currentCameras
-      : [...currentCameras, cam];
-    camerasRef.current = nextCameras;
-    setCameras(nextCameras);
+    setCameras((prev) => [...prev, cam]);
     setCameraBackendQueue((prev) => reserveCameraBackend(prev, getCameraBackendUrl(cam)));
-    forceRefresh([cam]);
-    // Wait before first poll: worker thread needs time to start processing stream
-    window.setTimeout(() => forceRefresh(camerasRef.current), 5000);
-    // Keep polling aggressively for first 30 seconds
-    window.setTimeout(() => forceRefresh(camerasRef.current), 10000);
-    window.setTimeout(() => forceRefresh(camerasRef.current), 15000);
-    window.setTimeout(() => forceRefresh(camerasRef.current), 25000);
-    // Auto-play: Start monitoring when worker is ready (after 30s)
+    // Poll once to validate camera is started
+    forceRefresh();
+    // Reload page after 30s to display new camera stream (ONLY on camera add)
     window.setTimeout(() => {
-      setIsPaused(false);
-      console.log("Auto-playing cameras...");
-    }, 30000);
-    // Auto-reload: Refresh the page to show new streams in full (after 35s)
-    window.setTimeout(() => {
-      console.log("Auto-reloading page to display new camera stream...");
+      console.log("Reloading page to display new camera stream...");
       window.location.reload();
-    }, 35000);
+    }, 30000);
   };
 
   const handleDelete = async (camera) => {
