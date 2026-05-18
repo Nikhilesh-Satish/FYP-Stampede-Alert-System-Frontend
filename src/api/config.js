@@ -7,8 +7,23 @@ export const API_BASE_URL = normalizeBaseUrl(
   import.meta.env.VITE_API_URL || "http://localhost:8000",
 );
 
+// Hardcoded fallback backend URLs in case environment variables are not loaded
+const FALLBACK_CAMERA_URLS =
+  "https://niks1904-stampede-alert-system-backend-fyp.hf.space," +
+  "https://niks1904-stampede-alert-system-backend-fyp-2.hf.space," +
+  "https://niks1904-stampede-alert-system-backend-fyp-3.hf.space," +
+  "https://niks1904-stampede-alert-system-backend-fyp-4.hf.space," +
+  "https://niks1904-stampede-alert-system-backend-fyp-5.hf.space," +
+  "https://niks1904-stampede-alert-system-backend-fyp-6.hf.space," +
+  "https://niks001904-stampede-alert-system-backend-fyp-7.hf.space," +
+  "https://niks001904-stampede-alert-system-backend-fyp-8.hf.space," +
+  "https://niks001904-stampede-alert-system-backend-fyp-9.hf.space," +
+  "https://niks001904-stampede-alert-system-backend-fyp-10.hf.space," +
+  "https://niks001904-stampede-alert-system-backend-fyp-11.hf.space," +
+  "https://niks001904-stampede-alert-system-backend-fyp-12.hf.space";
+
 const rawCameraUrls =
-  import.meta.env.VITE_CAMERA_API_URLS || import.meta.env.VITE_API_URL || API_BASE_URL;
+  import.meta.env.VITE_CAMERA_API_URLS || FALLBACK_CAMERA_URLS;
 
 export const CAMERA_API_URLS = rawCameraUrls
   .split(",")

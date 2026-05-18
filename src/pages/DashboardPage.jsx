@@ -43,7 +43,7 @@ const DashboardPage = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [capacity, setCapacity] = useState(DEFAULT_AREA_CAPACITY);
   const [resetLoading, setResetLoading] = useState(false);
-  const [isPaused, setIsPaused] = useState(true);
+  const [isPaused, setIsPaused] = useState(false); // Default: playing (not paused)
 
   const {
     counts,
